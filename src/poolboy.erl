@@ -246,7 +246,8 @@ handle_info({'EXIT', Pid, _Reason}, State) ->
             case lists:member(Pid, State#state.workers) of
                 true ->
                     W = lists:filter(fun (P) -> P =/= Pid end, State#state.workers),
-                    {noreply, State#state{workers = [new_worker(Sup) | W]}};
+                    % {noreply, State#state{workers = [new_worker(Sup) | W]}};
+                    {noreply, State#state{workers = W}};
                 false ->
                     {noreply, State}
             end
@@ -293,7 +294,12 @@ prepopulate(N, Sup) ->
 prepopulate(0, _Sup, Workers) ->
     Workers;
 prepopulate(N, Sup, Workers) ->
-    prepopulate(N-1, Sup, [new_worker(Sup) | Workers]).
+    case (catch new_worker(Sup)) of 
+        Pid when is_pid(Pid) ->
+            prepopulate(N-1, Sup, [new_worker(Sup) | Workers]);
+        _ ->
+            prepopulate(N-1, Sup, Workers)
+    end.
 
 handle_checkin(Pid, State) ->
     #state{supervisor = Sup,
@@ -331,8 +337,9 @@ handle_worker_exit(Pid, State) ->
             State#state{overflow = Overflow - 1, waiting = Empty};
         {empty, Empty} ->
             Workers =
-                [new_worker(Sup)
-                 | lists:filter(fun (P) -> P =/= Pid end, State#state.workers)],
+                % [new_worker(Sup)
+                %  | lists:filter(fun (P) -> P =/= Pid end, State#state.workers)],
+                lists:filter(fun (P) -> P =/= Pid end, State#state.workers),
             State#state{workers = Workers, waiting = Empty}
     end.
 
