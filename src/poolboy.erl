@@ -296,7 +296,7 @@ prepopulate(0, _Sup, Workers) ->
 prepopulate(N, Sup, Workers) ->
     case (catch new_worker(Sup)) of 
         Pid when is_pid(Pid) ->
-            prepopulate(N-1, Sup, [new_worker(Sup) | Workers]);
+            prepopulate(N-1, Sup, [Pid | Workers]);
         _ ->
             prepopulate(N-1, Sup, Workers)
     end.
@@ -337,9 +337,8 @@ handle_worker_exit(Pid, State) ->
             State#state{overflow = Overflow - 1, waiting = Empty};
         {empty, Empty} ->
             Workers =
-                % [new_worker(Sup)
-                %  | lists:filter(fun (P) -> P =/= Pid end, State#state.workers)],
-                lists:filter(fun (P) -> P =/= Pid end, State#state.workers),
+                [new_worker(Sup)
+                 | lists:filter(fun (P) -> P =/= Pid end, State#state.workers)],
             State#state{workers = Workers, waiting = Empty}
     end.
 
